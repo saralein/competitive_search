@@ -109,15 +109,20 @@ to have longer lines than shorter lines.
 You'll want to pass the tests defined in minimax_specs.js.
 */
 var heuristic = function(state, maximizingPlayer){
-
 	//This is how you can retrieve the minimizing player.
     var minimizingPlayer = (maximizingPlayer == 'x') ? 'o' : 'x';
 
 	//An example.
     var linesOfLengthTwoForX = state.numLines(2, 'x')
 
+    var estimatePlayerAdvantage = function(player) {
+      return [2,3,4].reduce(function(total, lineLength) {
+        return total + Math.pow(lineLength, 4) * state.numLines(lineLength, player)
+      }, 0);
+    }
+
     //Your code here.  Don't return random, obviously.
-	return Math.random()
+	return estimatePlayerAdvantage(maximizingPlayer) - estimatePlayerAdvantage(minimizingPlayer);
 }
 
 
@@ -145,8 +150,20 @@ var minimax = function(state, depth, maximizingPlayer){
 	var minimizingPlayer = (maximizingPlayer == 'x') ? 'o' : 'x';
 	var possibleStates = state.nextStates();
 	var currentPlayer = state.nextMovePlayer;
-	//Your code here.
-	return Math.random();
+
+  if (depth === 0 || possibleStates.length === 0) {
+    return heuristic(state, maximizingPlayer);
+  } else {
+    var possibleStatesValues = possibleStates.map(nextState => {
+      return minimax(nextState, depth-1, maximizingPlayer);
+    });
+
+    if (maximizingPlayer == currentPlayer) {
+      return Math.max.apply(null, possibleStatesValues);
+    } else {
+      return Math.min.apply(null, possibleStatesValues);
+    }
+  }
 }
 
 
@@ -171,9 +188,44 @@ var minimaxAlphaBetaWrapper = function(state, depth, maximizingPlayer){
     does; this is why it is a very high value to start with.
 	*/
 	var minimaxAB = function(state, depth, alpha, beta){
+    var minimizingPlayer = (maximizingPlayer == 'x') ? 'o' : 'x';
+    var possibleStates = state.nextStates();
+    var currentPlayer = state.nextMovePlayer;
+
+    if (depth === 0 || possibleStates.length === 0) {
+      return heuristic(state, maximizingPlayer);
+    } else {
+      if (maximizingPlayer === currentPlayer) {
+        var bestMoveSoFar = -100000;
+        for (var x = 0; x < possibleStates.length; x++) {
+          var possibleState = possibleStates[x];
+          var possibleStateValue = minimax(possibleState, depth-1, alpha, beta);
+          alpha = Math.max(alpha, possibleStateValue);
+          bestMoveSoFar = Math.max(bestMoveSoFar, possibleStateValue);
+          if (alpha > beta) {
+            return bestMoveSoFar;
+          }
+        }
+        return bestMoveSoFar;
+
+      } else {
+        var bestMoveSoFar = 100000;
+        for (var x = 0; x < possibleStates.length; x++) {
+          var possibleState = possibleStates[x];
+          var possibleStateValue = minimax(possibleState, depth-1, alpha, beta);
+          beta = Math.max(beta, possibleStateValue);
+          bestMoveSoFar = Math.max(bestMoveSoFar, possibleStateValue);
+          if (alpha > beta) {
+            return bestMoveSoFar;
+          }
+        }
+        return bestMoveSoFar;
+
+      }
+    }
 	}
 
-	return minimaxAB(state, depth, -100000,100000)
+	return minimaxAB(state, depth, -100000, 100000)
 }
 
 //ecxport default {makeMove, minimax, heuristic};
